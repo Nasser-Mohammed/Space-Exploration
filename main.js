@@ -211,7 +211,8 @@ function updatePlanets(){
 
 function animate(){
   cnt++;
-  if (cnt%280 === 0){
+  if (cnt%280 === 0 || cnt >= 280){
+    console.log("count: ", cnt);
     console.log("one month cycle");
     cnt = 0;
     multiplier++;
@@ -277,6 +278,7 @@ function drawPlanets(){
     const sat = satellites[i];
     const tmpEarth = celestialObjects.get('earth');
 
+    if(sat.axisOfRotation == 'xy'){
     let x = sat.radius*Math.cos(sat.angle);
     let y = sat.radius*Math.sin(sat.angle);
 
@@ -290,6 +292,29 @@ function drawPlanets(){
       satelliteSize
     );
   }
+else {
+  const x = tmpEarth.stateVector.x;
+  const y = sat.radius * Math.cos(sat.angle) + tmpEarth.stateVector.y;
+
+  const earthCenterY = tmpEarth.stateVector.y;
+  const earthRadius = tmpEarth.size / 2;
+
+  const isOccluded = Math.abs(y - earthCenterY) < earthRadius;
+
+  if (!isOccluded) {
+    ctx.drawImage(
+      sat.image,
+      x + width / 2 - Math.floor(satelliteSize / 2),
+      -y + height / 2 - Math.floor(satelliteSize / 2),
+      satelliteSize,
+      satelliteSize
+    );
+  }
+}
+
+
+
+  }
 
   for(let i = 0; i < rockets.length; i++){
     //to do
@@ -301,7 +326,7 @@ function updateSatellites(){
     const sat = satellites[i];
     sat.angle = sat.angle + 1/280;
     if (sat.angle >= 2*Math.PI){
-      sat.angle = sat.angle%Math.PI;
+      sat.angle = sat.angle%(2*Math.PI);
     }
   }
 }
@@ -311,7 +336,15 @@ function initSatellite(){
 }
 
 function launchSatellite(){
+  const tmpPlanet =  celestialObjects.get('earth');
   let tmpSat = initSatellite();//tmpEarth.stateVector.x + 20, tmpEarth.stateVector.y + 20);
+  if (satellites.length%2 === 0){
+    tmpSat.axisOfRotation = 'xy';
+  }
+  else{
+    tmpSat.axisOfRotation = 'xz';
+  }
+  tmpSat.angleOfIncidence = (Math.PI/2) - Math.acos((tmpPlanet.size/2)/tmpSat.radius);
   satellites.push(tmpSat);
   console.log("added: ", tmpSat);
 }
