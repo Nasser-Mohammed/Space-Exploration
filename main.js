@@ -60,15 +60,15 @@ const planetMasses = {
 const celestialObjects = new Map();
 //0.0123/333
 //i scaled down masses from 333,000 to 1000 (max) so divided by 333
-celestialObjects.set('sun', {stateVector: {}, size: 225, mass: 1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/sun.png"})});
-celestialObjects.set('earth', {stateVector: {}, size: 50, mass: 1/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/earth.png"})});
-celestialObjects.set('moon', {stateVector: {}, size: 15, mass: 1e-7, gravitationalBoost: 100, inSimulation: false, image: Object.assign(new Image(), {src: "images/moon.png"})});
-celestialObjects.set('mars', {stateVector: {}, size: 27, mass: 0.107/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/mars.png"})});
-celestialObjects.set('jupiter', {stateVector: {}, size: 87, mass: 317.8/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/jupiter.png"})});
-celestialObjects.set('saturn', {stateVector: {}, size: 110, mass: 95.2/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/saturn.png"})});
-celestialObjects.set('neptune', {stateVector: {}, size: 65, mass: 17.1/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/neptune.png"})});
+celestialObjects.set('sun', {stateVector: {}, size: 250, mass: 1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/sun.png"})});
+celestialObjects.set('earth', {stateVector: {}, size: 35, mass: 1/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/earth.png"})});
+celestialObjects.set('moon', {stateVector: {}, size: 10, mass: 1e-7, gravitationalBoost: 100, inSimulation: false, image: Object.assign(new Image(), {src: "images/moon.png"})});
+celestialObjects.set('mars', {stateVector: {}, size: 18, mass: 0.107/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/mars.png"})});
+celestialObjects.set('jupiter', {stateVector: {}, size: 95, mass: 317.8/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/jupiter.png"})});
+celestialObjects.set('saturn', {stateVector: {}, size: 115, mass: 95.2/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/saturn.png"})});
+celestialObjects.set('neptune', {stateVector: {}, size: 50, mass: 17.1/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/neptune.png"})});
 
-let sun = {stateVector: {}, size: 225, mass: 1000, inSimulation: true, image: Object.assign(new Image(), {src: "images/sun.png"})};
+let sun = {stateVector: {}, size: 250, mass: 1000, inSimulation: true, image: Object.assign(new Image(), {src: "images/sun.png"})};
 /*equations of motion:
 For n-bodies, we have n-second order vector differential equations. Usually, vectors for 3D,
 but I am simplifying and only considering planar trajectories so no z-dimension or forces.
@@ -78,6 +78,9 @@ Each body has 2 ODEs, and both are second order so can be broken into 2 ODE in p
 So we have 4 ODEs per body. Each ODE depends on the state of every other body.
 
 */
+
+let moons = [];
+const moonObj = celestialObjects.get('moon');
 let cnt = 0;
 let multiplier = 1;
 
@@ -240,6 +243,7 @@ function animate(){
   }
   updatePlanetsRK4();
   updateSatellites();
+  updateMoon();
   drawPlanets();
   //console.log("running......");
   animationId = requestAnimationFrame(animate);
@@ -274,6 +278,22 @@ function drawPlanets(){
     );
 
   }
+
+  const tmpEarth = celestialObjects.get('earth');
+  const moon = moonObj;
+  let moonX = moon.radius*Math.cos(moon.stateVector.theta);
+  let moonY = moon.radius*Math.sin(moon.stateVector.theta);
+
+  moonX = moonX + tmpEarth.stateVector.x;
+  moonY = moonY + tmpEarth.stateVector.y;
+
+  ctx.drawImage(
+    moonObj.image,
+    moonX + width/2 - Math.floor(moonObj.size/2),
+    -moonY + height/2 - Math.floor(moonObj.size/2),
+    moonObj.size,
+    moonObj.size
+  )
   for(let i = 0; i < satellites.length; i++){
     const sat = satellites[i];
     const tmpEarth = celestialObjects.get('earth');
@@ -321,6 +341,14 @@ else {
   }
 }
 
+function updateMoon(){
+  moonObj.stateVector.theta = moonObj.stateVector.theta + 1/280;
+  if (moonObj.stateVector.theta >= 2*Math.PI){
+      moonObj.stateVector.theta = moonObj.stateVector.theta%(2*Math.PI);
+    }
+    console.log("updated moon theta: ", moonObj.stateVector.theta);
+}
+
 function updateSatellites(){
   for(let i = 0; i < satellites.length; i++){
     const sat = satellites[i];
@@ -332,7 +360,7 @@ function updateSatellites(){
 }
 
 function initSatellite(){
-  return {angle: (cnt*(2*Math.PI/280)), radius: 40, image: Object.assign(new Image(), {src: "images/satellite.png"})};
+  return {angle: (cnt*(2*Math.PI/280)), radius: 27, image: Object.assign(new Image(), {src: "images/satellite.png"})};
 }
 
 function launchSatellite(){
@@ -343,11 +371,62 @@ function launchSatellite(){
   }
   else{
     tmpSat.axisOfRotation = 'xz';
-    tmpSat.radius = 55;
+    tmpSat.radius = 35;
   }
   tmpSat.angleOfIncidence = (Math.PI/2) - Math.acos((tmpPlanet.size/2)/tmpSat.radius);
   satellites.push(tmpSat);
   console.log("added: ", tmpSat);
+}
+
+function initRocket(x, y){
+  return {x, y, velocity: 0, acceleration: 0};
+}
+
+function launchRocket(){
+  const tmpPlanet = celestialObjects.get('earth');
+  let tmpRocket = initRocket();
+}
+
+function initMoon(){
+  const moon = celestialObjects.get('moon');
+  const earth = celestialObjects.get('earth');
+  let x2 = width/2; //earth.stateVector.x;
+  let y2 = height/2; //earth.stateVector.y;
+
+  let xCoord = earth.stateVector.x + 50 + Math.random()*20 - 10;
+  let yCoord = earth.stateVector.y + 50 + Math.random()*20 - 10;
+  console.log("intitial moon pos: ", x2, ", ", y2);
+
+  const dx = xCoord - x2;
+  const dy = yCoord - y2;
+  const r = Math.sqrt(dx * dx + dy * dy);
+  console.log("distance from moon to earth: ", r);
+
+
+  // Compute perpendicular orbital velocity
+  const vMag = Math.sqrt(G * earth.mass / r);
+  const vx = -vMag * (dy / r);
+  const vy =  vMag * (dx / r);
+
+  // Store for future recomputation
+  moon.stateVector.x = xCoord;
+  moon.stateVector.y = yCoord;
+  moon.stateVector.Xacceleration = 0;
+  moon.stateVector.Yacceleration = 0;
+  moon.stateVector.Xvelocity = vx;
+  moon.stateVector.Yvelocity = vy;
+  moon.inSimulation = true;
+  const theta = 0;
+  moon.stateVector.theta = theta;
+  moon.radius = 65;
+  // Wait for image to load before drawing
+  console.log("adding: ", moon);
+  drawPlanets();
+
+  // i want the moon to orbit the earth and therefore other forces are negligible on it
+  //so we just consider it as a 2-body system with distance from shell of earth to center of moon to be 75
+ // addPlanetToSimulation(moon, 35 + earthX + Math.random()*20-10, 35 + earthY + Math.random()*20-10, false);
+
 }
 
 function addPlanetToSimulation(celestialBody, xCoord, yCoord, isSun) {
@@ -395,17 +474,15 @@ function addPlanetToSimulation(celestialBody, xCoord, yCoord, isSun) {
 function initPlanets(){
   const mars = celestialObjects.get('mars');
   const earth = celestialObjects.get('earth');
-  const moon = celestialObjects.get('moon');
   const jupiter = celestialObjects.get('jupiter');
   const saturn = celestialObjects.get('saturn');
   const neptune = celestialObjects.get('neptune');
-  let earthX = 125 + Math.random()*20-5;
-  let earthY = 125 + Math.random()*20-5
+  let earthX = 160 + Math.random()*20-5;
+  let earthY = 160 + Math.random()*20-5
   addPlanetToSimulation(earth, earthX, earthY, false);
-  addPlanetToSimulation(moon, 30 + earthX + Math.random()*20-10, 30 + earthY + Math.random()*20-10, false);
-  addPlanetToSimulation(mars, earthX + 75 + Math.random()*20-10, earthY + 75 + Math.random()*20-10, false);
-  let jupiterX = earthX + 180 + Math.random()*50;
-  let jupiterY = earthY + 180 + Math.random()*50;
+  addPlanetToSimulation(mars, earthX + 90 + Math.random()*20-10, earthY + 90 + Math.random()*20-10, false);
+  let jupiterX = earthX + 165 + Math.random()*50;
+  let jupiterY = earthY + 165 + Math.random()*50;
   addPlanetToSimulation(jupiter, jupiterX, jupiterY, false);
   addPlanetToSimulation(saturn, jupiterX + 70 + Math.random()*50, jupiterY + 70 + Math.random()*50, false);
   addPlanetToSimulation(neptune, jupiterX + 155 + Math.random()*50, jupiterY + 155 + Math.random()*50, false);
@@ -437,9 +514,12 @@ function resetSimulation() {
   multiplier = 1;
   document.getElementById("time-display").textContent = "Month: 1";
   G = 2.5;
+  moons = [];
   initPlanets();
+  initMoon();
   satellites = [];
   rockets = [];
+
 
   //drawPlanets()
   document.getElementById("start-simulation").textContent = "Click to Start Simulation";
@@ -461,10 +541,16 @@ document.addEventListener("DOMContentLoaded", () => {
   sun.stateVector.Yvelocity = 0;
   addPlanetToSimulation(sun, sun.stateVector.x, sun.stateVector.y, true);
   initPlanets();
+  initMoon();
 
   const launchSat = document.getElementById("launchButton");
   launchSat.addEventListener("click", (e) => {
     launchSatellite();
+  })
+
+  const launchRocket = document.getElementById("rocketLaunch");
+  launchRocket.addEventListener("click", (e) => {
+    launchRocket();
   })
 
 
