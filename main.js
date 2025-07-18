@@ -90,6 +90,8 @@ let rocketSize = 20;
 let satellites = [];
 let rockets = [];
 
+let rocketLaunchTime = 0;
+
 
 function computeAcceleration(x, y, selfIndex) {
   let ax = 0;
@@ -243,6 +245,7 @@ function animate(){
   }
   updatePlanetsRK4();
   updateSatellites();
+  updateRockets();
   updateMoon();
   drawPlanets();
   //console.log("running......");
@@ -337,7 +340,16 @@ else {
   }
 
   for(let i = 0; i < rockets.length; i++){
+    const tmpRocket = rockets[i];
     //to do
+    ctx.drawImage(
+      tmpRocket.image,
+      tmpRocket.x + width/2 - Math.floor(rocketSize/2),
+      -tmpRocket.y + height/2 - Math.floor(rocketSize/2),
+      rocketSize,
+      rocketSize
+
+    )
   }
 }
 
@@ -378,13 +390,30 @@ function launchSatellite(){
   console.log("added: ", tmpSat);
 }
 
+function updateRockets(){
+  for(let i = 0; i < rockets.length; i++){
+    const tmpRocket = rockets[i];
+    const accel = rocketAcceleration();
+    tmpRocket.velocity += 0.001*accel;
+    tmpRocket.x += tmpRocket.velocity*.001;
+    tmpRocket.y += tmpRocket.velocity*.001;
+  }
+
+}
+function rocketAcceleration(){
+  rocketLaunchTime--;
+  return 1000 - rocketLaunchTime;
+}
+
 function initRocket(x, y){
-  return {x, y, velocity: 0, acceleration: 0};
+  return {x, y, velocity: 0, acceleration: 100, image: Object.assign(new Image(), {src: "images/rocket.png"})};
 }
 
 function launchRocket(){
   const tmpPlanet = celestialObjects.get('earth');
-  let tmpRocket = initRocket();
+  let tmpRocket = initRocket(tmpPlanet.stateVector.x, tmpPlanet.stateVector.y);
+
+  rockets.push(tmpRocket);
 }
 
 function initMoon(){
@@ -519,6 +548,7 @@ function resetSimulation() {
   initMoon();
   satellites = [];
   rockets = [];
+  rocketLaunchTime = 0;
 
 
   //drawPlanets()
@@ -548,9 +578,10 @@ document.addEventListener("DOMContentLoaded", () => {
     launchSatellite();
   })
 
-  const launchRocket = document.getElementById("rocketLaunch");
-  launchRocket.addEventListener("click", (e) => {
+  const rocketLaunch = document.getElementById("rocketLaunch");
+  rocketLaunch.addEventListener("click", (e) => {
     launchRocket();
+    console.log("launched");
   })
 
 
