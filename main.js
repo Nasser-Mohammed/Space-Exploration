@@ -81,7 +81,7 @@ So we have 4 ODEs per body. Each ODE depends on the state of every other body.
 let cnt = 0;
 let multiplier = 1;
 
-let satelliteSize = 18;
+let satelliteSize = 10;
 let rocketSize = 20;
 
 let satellites = [];
@@ -332,7 +332,7 @@ function updateSatellites(){
 }
 
 function initSatellite(){
-  return {angle: (cnt*(2*Math.PI/280)), radius: 55, image: Object.assign(new Image(), {src: "images/satellite.png"})};
+  return {angle: (cnt*(2*Math.PI/280)), radius: 40, image: Object.assign(new Image(), {src: "images/satellite.png"})};
 }
 
 function launchSatellite(){
@@ -343,6 +343,7 @@ function launchSatellite(){
   }
   else{
     tmpSat.axisOfRotation = 'xz';
+    tmpSat.radius = 55;
   }
   tmpSat.angleOfIncidence = (Math.PI/2) - Math.acos((tmpPlanet.size/2)/tmpSat.radius);
   satellites.push(tmpSat);
