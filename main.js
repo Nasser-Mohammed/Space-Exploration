@@ -1,7 +1,7 @@
 // Three-body simulation with simple Euler integration and collisions
 
 let ctx;
-let G = 50; // Gravitational constant scaled for visualization
+let G = 2.5; // Gravitational constant scaled for visualization
 //let's let user pick from 3 modes, slow, normal, and fast
 //slow can be 3, normal: 50, and fast 250
 const dt = 0.1;
@@ -63,9 +63,9 @@ const celestialObjects = new Map();
 celestialObjects.set('sun', {stateVector: {}, size: 225, mass: 1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/sun.png"})});
 celestialObjects.set('earth', {stateVector: {}, size: 50, mass: 1/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/earth.png"})});
 celestialObjects.set('moon', {stateVector: {}, size: 15, mass: 1e-7, gravitationalBoost: 100, inSimulation: false, image: Object.assign(new Image(), {src: "images/moon.png"})});
-celestialObjects.set('mars', {sateVector: {}, size: 27, mass: 0.107/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/mars.png"})});
+celestialObjects.set('mars', {stateVector: {}, size: 27, mass: 0.107/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/mars.png"})});
 celestialObjects.set('jupiter', {stateVector: {}, size: 87, mass: 317.8/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/jupiter.png"})});
-celestialObjects.set('saturn', {sateVector: {}, size: 110, mass: 95.2/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/saturn.png"})});
+celestialObjects.set('saturn', {stateVector: {}, size: 110, mass: 95.2/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/saturn.png"})});
 celestialObjects.set('neptune', {stateVector: {}, size: 65, mass: 17.1/1000, inSimulation: false, image: Object.assign(new Image(), {src: "images/neptune.png"})});
 
 let sun = {stateVector: {}, size: 225, mass: 1000, inSimulation: true, image: Object.assign(new Image(), {src: "images/sun.png"})};
@@ -80,6 +80,12 @@ So we have 4 ODEs per body. Each ODE depends on the state of every other body.
 */
 let cnt = 0;
 let multiplier = 1;
+
+let satelliteSize = 18;
+let rocketSize = 20;
+
+let satellites = [];
+let rockets = [];
 
 
 function computeAcceleration(x, y, selfIndex) {
@@ -146,7 +152,7 @@ function updatePlanetsRK4() {
     p.stateVector.Xvelocity += (k1vx + 2 * k2vx + 2 * k3vx + k4vx) / 6;
     p.stateVector.Yvelocity += (k1vy + 2 * k2vy + 2 * k3vy + k4vy) / 6;
 
-    console.log("new state: ", p.stateVector.x, ", ", p.stateVector.y);
+    //console.log("new state: ", p.stateVector.x, ", ", p.stateVector.y);
   }
 }
 
@@ -198,19 +204,41 @@ function updatePlanets(){
     //position update
     bodyI.stateVector.x = bodyI.stateVector.x + bodyI.stateVector.Xvelocity*dt;
     bodyI.stateVector.y = bodyI.stateVector.y + bodyI.stateVector.Yvelocity*dt;
-    console.log("new state: ", bodyI.stateVector);
+    //console.log("new state: ", bodyI.stateVector);
   }
 
 }
 
 function animate(){
   cnt++;
-  if (cnt%360 === 0){
+  if (cnt%280 === 0){
+    console.log("one month cycle");
     cnt = 0;
     multiplier++;
+    if (multiplier < 12){
     document.getElementById("time-display").textContent = "Month: " + (Math.floor(multiplier)).toString();
+    }
+    else{
+      if(Math.floor(multiplier/12) === 1){
+        if (multiplier%12 === 1){
+        document.getElementById("time-display").textContent = (Math.floor(multiplier/12)).toString() + " year and " + ((multiplier%12).toFixed()).toString() + " month";
+        }
+        else{
+          document.getElementById("time-display").textContent = (Math.floor(multiplier/12)).toString() + " year and " + ((multiplier%12).toFixed()).toString() + " months";
+        }
+      }
+      else{
+        if (multiplier%12 ===1){
+          document.getElementById("time-display").textContent = (Math.floor(multiplier/12)).toString() + " years and " + ((multiplier%12).toFixed()).toString() + " month";
+        }
+        else{
+          document.getElementById("time-display").textContent = (Math.floor(multiplier/12)).toString() + " years and " + ((multiplier%12).toFixed()).toString() + " months";
+        }
+      }
+    }
   }
   updatePlanetsRK4();
+  updateSatellites();
   drawPlanets();
   //console.log("running......");
   animationId = requestAnimationFrame(animate);
@@ -245,25 +273,60 @@ function drawPlanets(){
     );
 
   }
+  for(let i = 0; i < satellites.length; i++){
+    const sat = satellites[i];
+    const tmpEarth = celestialObjects.get('earth');
+
+    let x = sat.radius*Math.cos(sat.angle);
+    let y = sat.radius*Math.sin(sat.angle);
+
+    x = x + tmpEarth.stateVector.x;
+    y = y + tmpEarth.stateVector.y;
+    ctx.drawImage(
+      sat.image,
+      x + width/2 - Math.floor(satelliteSize/2),
+      -y + height/2 - Math.floor(satelliteSize/2),
+      satelliteSize,
+      satelliteSize
+    );
+  }
+
+  for(let i = 0; i < rockets.length; i++){
+    //to do
+  }
+}
+
+function updateSatellites(){
+  for(let i = 0; i < satellites.length; i++){
+    const sat = satellites[i];
+    sat.angle = sat.angle + 1/280;
+    if (sat.angle >= 2*Math.PI){
+      sat.angle = sat.angle%Math.PI;
+    }
+  }
+}
+
+function initSatellite(){
+  return {angle: (cnt*(2*Math.PI/280)), radius: 55, image: Object.assign(new Image(), {src: "images/satellite.png"})};
+}
+
+function launchSatellite(){
+  let tmpSat = initSatellite();//tmpEarth.stateVector.x + 20, tmpEarth.stateVector.y + 20);
+  satellites.push(tmpSat);
+  console.log("added: ", tmpSat);
 }
 
 function addPlanetToSimulation(celestialBody, xCoord, yCoord, isSun) {
-
   if (!isSun){
     console.log("adding non-sun");
-    const body = createCelestialInstance(celestialBody); 
-
     //convert canvas coords to x,y cartesian coords
     //we want x = 0 to correspond to width/2 (the middle, so our graph is centered in the middle of the canvas)
-
-    let newX = xCoord - width/2;
-    let newY = -yCoord + height/2;
 
     let x2 = sun.stateVector.x;
     let y2 = sun.stateVector.y;
 
-    const dx = newX - x2;
-    const dy = newY - y2;
+    const dx = xCoord - x2;
+    const dy = yCoord - y2;
     const r = Math.sqrt(dx * dx + dy * dy);
 
 
@@ -272,38 +335,20 @@ function addPlanetToSimulation(celestialBody, xCoord, yCoord, isSun) {
     const vx = -vMag * (dy / r);
     const vy =  vMag * (dx / r);
 
-
     // Store for future recomputation
-    const fixedBody = {
-      stateVector: {
-        x: newX,
-        y: newY,
-        Xacceleration: 0,
-        Yacceleration: 0,
-        Xvelocity: vx,
-        Yvelocity: vy
-      },
-      initialOrbit: {
-        centralMass: sun.mass,
-        dx: dx,
-        dy: dy,
-        radius: r
-      },
-      size: body.size,
-      mass: body.mass,
-      inSimulation: true,
-      image: Object.assign(new Image(), { src: body.image.src })
-    };
+    celestialBody.stateVector.x = xCoord;
+    celestialBody.stateVector.y = yCoord;
+    celestialBody.stateVector.Xacceleration = 0;
+    celestialBody.stateVector.Yacceleration = 0;
+    celestialBody.stateVector.Xvelocity = vx;
+    celestialBody.stateVector.Yvelocity = vy;
+    celestialBody.inSimulation = true;
     // Wait for image to load before drawing
-    console.log("adding: ", fixedBody);
-    fixedBody.image.onload = () => {
-      planetsInSimulation.push(fixedBody);
-      drawPlanets();
-    };
+    console.log("adding: ", celestialBody);
+    planetsInSimulation.push(celestialBody);
+    drawPlanets();
+
       // Optional: fallback in case image fails
-  fixedBody.image.onerror = () => {
-    console.error("Failed to load image for:", celestialBody);
-    };
   }
   else{
     console.log("adding sun")
@@ -311,6 +356,25 @@ function addPlanetToSimulation(celestialBody, xCoord, yCoord, isSun) {
     drawPlanets();
   }
 
+}
+
+function initPlanets(){
+  const mars = celestialObjects.get('mars');
+  const earth = celestialObjects.get('earth');
+  const moon = celestialObjects.get('moon');
+  const jupiter = celestialObjects.get('jupiter');
+  const saturn = celestialObjects.get('saturn');
+  const neptune = celestialObjects.get('neptune');
+  let earthX = 125 + Math.random()*20-5;
+  let earthY = 125 + Math.random()*20-5
+  addPlanetToSimulation(earth, earthX, earthY, false);
+  addPlanetToSimulation(moon, 30 + earthX + Math.random()*20-10, 30 + earthY + Math.random()*20-10, false);
+  addPlanetToSimulation(mars, earthX + 75 + Math.random()*20-10, earthY + 75 + Math.random()*20-10, false);
+  let jupiterX = earthX + 180 + Math.random()*50;
+  let jupiterY = earthY + 180 + Math.random()*50;
+  addPlanetToSimulation(jupiter, jupiterX, jupiterY, false);
+  addPlanetToSimulation(saturn, jupiterX + 70 + Math.random()*50, jupiterY + 70 + Math.random()*50, false);
+  addPlanetToSimulation(neptune, jupiterX + 155 + Math.random()*50, jupiterY + 155 + Math.random()*50, false);
 }
 
 
@@ -327,6 +391,7 @@ function resetSimulation() {
   simulationTime = 0;
   frameCount = 0;
   planetsInSimulation = []
+
   sun.stateVector.x = 0;
   sun.stateVector.y = 0;
   sun.stateVector.Xacceleration = 0;
@@ -334,12 +399,13 @@ function resetSimulation() {
   sun.stateVector.Xvelocity = 0;
   sun.stateVector.Yvelocity = 0;
   addPlanetToSimulation(sun, sun.stateVector.x, sun.stateVector.y, true);
-  document.getElementById("modeSelect").disabled = false;
   cnt = 0;
   multiplier = 1;
   document.getElementById("time-display").textContent = "Month: 1";
-  document.getElementById("modeSelect").value = "50";
-  G = 50;
+  G = 2.5;
+  initPlanets();
+  satellites = [];
+  rockets = [];
 
   //drawPlanets()
   document.getElementById("start-simulation").textContent = "Click to Start Simulation";
@@ -360,11 +426,12 @@ document.addEventListener("DOMContentLoaded", () => {
   sun.stateVector.Xvelocity = 0;
   sun.stateVector.Yvelocity = 0;
   addPlanetToSimulation(sun, sun.stateVector.x, sun.stateVector.y, true);
+  initPlanets();
 
-  document.getElementById("modeSelect").addEventListener("change", function (e) {
-  G = parseFloat(e.target.value);
-});
-
+  const launchSat = document.getElementById("launchButton");
+  launchSat.addEventListener("click", (e) => {
+    launchSatellite();
+  })
 
 
   document.querySelectorAll('#planet-palette img').forEach(img => {
